@@ -21,6 +21,7 @@ class HistoryScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('scans')
                   .where('uid', isEqualTo: user.uid)
+                  .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
