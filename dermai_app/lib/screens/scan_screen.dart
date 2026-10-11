@@ -32,7 +32,7 @@ class _ScanScreenState extends State<ScanScreen> {
     setState(() { _isAnalysing = true; });
 
     try {
-      final uri = Uri.parse('https://dermai-vnjd.onrender.com/analyse');
+      final uri = Uri.parse('http://192.168.1.8:8000/analyse');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(http.MultipartFile.fromBytes('file', _imageBytes!, filename: 'image.jpg'));
       final response = await request.send();

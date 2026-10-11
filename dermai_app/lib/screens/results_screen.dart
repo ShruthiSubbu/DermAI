@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 
 class ResultsScreen extends StatelessWidget {
   final Map<String, dynamic> result;
@@ -7,11 +8,22 @@ class ResultsScreen extends StatelessWidget {
 
   const ResultsScreen({super.key, required this.result, required this.imageBytes});
 
+  Uint8List? _decodeHeatmap() {
+    final raw = result['gradcam'];
+    if (raw is! String || raw.isEmpty) return null;
+    try {
+      return base64Decode(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final prediction = result['prediction'] ?? 'Unknown';
     final confidence = (result['confidence'] ?? 0).toStringAsFixed(1);
     final top5 = result['top5'] as List<dynamic>? ?? [];
+    final heatmap = _decodeHeatmap();
 
     return Scaffold(
       appBar: AppBar(
@@ -53,6 +65,29 @@ class ResultsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+            const Text('AI Attention Heatmap', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text('Warm colours show where the AI looked most.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            const SizedBox(height: 12),
+            if (heatmap != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.memory(heatmap, width: double.infinity, fit: BoxFit.cover),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Heatmap not available on this server.',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ),
+            const SizedBox(height: 24),
             const Text('Top 5 Predictions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             ...top5.asMap().entries.map((entry) {
@@ -88,10 +123,19 @@ class ResultsScreen extends StatelessWidget {
               );
             }),
             const SizedBox(height: 16),
-            const Text(
-              '⚠️ This is not a medical diagnosis. Please consult a dermatologist for professional advice.',
-              style: TextStyle(color: Colors.orange, fontSize: 12),
-              textAlign: TextAlign.center,
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    'This is not a medical diagnosis. Please consult a dermatologist for professional advice.',
+                    style: TextStyle(color: Colors.orange, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

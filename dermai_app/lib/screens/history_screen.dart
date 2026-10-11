@@ -5,6 +5,77 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
+  String _formatDate(Timestamp? ts) {
+    if (ts == null) return 'Date unknown';
+    final d = ts.toDate();
+    final h = d.hour.toString().padLeft(2, '0');
+    final m = d.minute.toString().padLeft(2, '0');
+    return '${d.day}/${d.month}/${d.year}  $h:$m';
+  }
+
+  void _showDetails(BuildContext context, Map<String, dynamic> data) {
+    final prediction = (data['prediction'] ?? 'Unknown').toString();
+    final confidence = ((data['confidence'] ?? 0) as num).toDouble();
+    final timestamp = data['timestamp'] as Timestamp?;
+    final top5 = (data['top5'] as List?) ?? [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Top Prediction', style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 4),
+              Text(prediction, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+              const SizedBox(height: 8),
+              Text(
+                'Confidence: ${confidence.toStringAsFixed(1)}%',
+                style: const TextStyle(color: Color(0xFF4CAF50), fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(_formatDate(timestamp), style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 20),
+              const Text('Top 5 Predictions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              ...List.generate(top5.length, (i) {
+                final item = Map<String, dynamic>.from(top5[i] as Map);
+                final name = (item['condition'] ?? '').toString();
+                final conf = ((item['confidence'] ?? 0) as num).toDouble();
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: i == 0 ? const Color(0xFF4CAF50) : Colors.grey[300],
+                    child: Text(
+                      '${i + 1}',
+                      style: TextStyle(color: i == 0 ? Colors.white : Colors.black87, fontSize: 12),
+                    ),
+                  ),
+                  title: Text(name),
+                  trailing: Text('${conf.toStringAsFixed(1)}%'),
+                );
+              }),
+              const SizedBox(height: 12),
+              const Text(
+                'This is not a medical diagnosis. Please consult a dermatologist for professional advice.',
+                style: TextStyle(color: Colors.orange, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -28,6 +99,18 @@ class HistoryScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: SelectableText(
+                        'Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
+
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
                     child: Column(
@@ -49,7 +132,7 @@ class HistoryScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final data = docs[index].data() as Map<String, dynamic>;
                     final prediction = data['prediction'] ?? 'Unknown';
-                    final confidence = (data['confidence'] ?? 0.0).toStringAsFixed(1);
+                    final confidence = ((data['confidence'] ?? 0) as num).toDouble().toStringAsFixed(1);
                     final timestamp = data['timestamp'] as Timestamp?;
                     final date = timestamp != null
                         ? '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}'
@@ -59,6 +142,7 @@ class HistoryScreen extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
+                        onTap: () => _showDetails(context, data),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         leading: CircleAvatar(
                           backgroundColor: const Color(0xFF4CAF50),
@@ -71,7 +155,7 @@ class HistoryScreen extends StatelessWidget {
                           prediction,
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                         ),
-                        subtitle: Text('Confidence: $confidence%  •  $date'),
+                        subtitle: Text('Confidence: $confidence%  \u2022  $date'),
                         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                       ),
                     );
