@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile
+﻿from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import numpy as np
@@ -8,13 +8,13 @@ from PIL import Image
 import tensorflow as tf
 import uvicorn
 
-from app.gradcam import generate_gradcam
+from app.gradcam import generate_gradcam, get_last_error
 
-# ─── PATHS ───────────────────────────────────────────────────────────────────
+# â”€â”€â”€ PATHS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 TFLITE_PATH   = "app/model/dermai_model.tflite"
 LABELMAP_PATH = "app/model/dermai_label_map.json"
 
-# ─── APP ─────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app = FastAPI(title="DermAI API")
 
 app.add_middleware(
@@ -24,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── GLOBALS ─────────────────────────────────────────────────────────────────
+# â”€â”€â”€ GLOBALS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interpreter = None
 idx2label = None
 
@@ -41,12 +41,12 @@ def startup_event():
 
     print("TFLite model loaded successfully!")
 
-# ─── HEALTH ──────────────────────────────────────────────────────────────────
+# â”€â”€â”€ HEALTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.get("/health")
 def health():
     return {"status": "ok", "model": "MobileNetV2-TFLite", "classes": 43}
 
-# ─── ANALYSE ─────────────────────────────────────────────────────────────────
+# â”€â”€â”€ ANALYSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.post("/analyse")
 async def analyse(file: UploadFile = File(...)):
     contents = await file.read()
@@ -87,7 +87,9 @@ async def analyse(file: UploadFile = File(...)):
         "prediction": pred_label,
         "confidence": confidence,
         "top5": top5,
-        "gradcam": heatmap_b64
+        "gradcam": heatmap_b64,
+        "gradcam_error": get_last_error(),
+        "build": "gc-v2"
     })
 
 if __name__ == "__main__":

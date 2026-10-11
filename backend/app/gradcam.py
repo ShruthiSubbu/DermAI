@@ -56,5 +56,13 @@ def generate_gradcam(image_bytes: bytes, class_index: int) -> str:
         return base64.b64encode(buf).decode("utf-8")
 
     except Exception:
-        print("GRADCAM ERROR:\n" + traceback.format_exc(), flush=True)
+        _state['err'] = traceback.format_exc()[-1500:]
+        print('GRADCAM ERROR:', _state['err'], flush=True)
         return ""
+
+_state = {'err': ''}
+
+
+def get_last_error():
+    return _state['err']
+
