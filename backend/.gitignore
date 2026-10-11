@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv*/
+.env
+
+# Model files
+app/model/*.keras
+
+# OS
+.DS_Store
+Thumbs.dbgradcam_old.py.bak
+gradcam_test_log.txt
+gradcam_out.txt
+server_out.txt
+server_err.txt
+heatmap_test.jpg
+
+
+*.bak
+test_gradcam.py
+test_gradcam_fn.py
+gradcam_test_log.txt
+gradcam_out.txt
+server_out.txt
+server_err.txt
+heatmap_test.jpg
