@@ -47,6 +47,7 @@ class _ScanScreenState extends State<ScanScreen> {
           'prediction': data['prediction'],
           'confidence': data['confidence'],
           'top5': data['top5'],
+          'gradcam': data['gradcam'] ?? '',
           'timestamp': FieldValue.serverTimestamp(),
         });
       }

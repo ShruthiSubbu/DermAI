@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,23 +15,35 @@ class HistoryScreen extends StatelessWidget {
     return '${d.day}/${d.month}/${d.year}  $h:$m';
   }
 
+  Uint8List? _decodeHeatmap(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      try {
+        return base64Decode(value);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   void _showDetails(BuildContext context, Map<String, dynamic> data) {
     final prediction = (data['prediction'] ?? 'Unknown').toString();
     final confidence = ((data['confidence'] ?? 0) as num).toDouble();
     final timestamp = data['timestamp'] as Timestamp?;
     final top5 = (data['top5'] as List?) ?? [];
+    final heatmap = _decodeHeatmap(data['gradcam']);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Top Prediction', style: TextStyle(color: Colors.grey, fontSize: 14)),
@@ -42,6 +56,35 @@ class HistoryScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(_formatDate(timestamp), style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 20),
+              const Text('AI Attention Heatmap', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 4),
+              const Text('Warm colours show where the AI looked most.',
+                  style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 10),
+              if (heatmap != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.memory(
+                    heatmap,
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
+                    gaplessPlayback: true,
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Heatmap was not saved for this scan.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
               const SizedBox(height: 20),
               const Text('Top 5 Predictions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 8),
